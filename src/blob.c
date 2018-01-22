@@ -1,7 +1,9 @@
 #include "blob.h"
 #include "osm_error.h"
 #include "fileblock.h"
+#include "primitive_block.h"
 #include "fileformat.pb.h"
+#include "osmformat.pb.h"
 
 #include <pb_decode.h>
 #include <miniz.h>
@@ -13,17 +15,55 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+
+/*
+bool osm_blob_header_block(pb_istream_t *stream, const pb_field_t *field, void **arg) {
+    OSMPBF_HeaderBlock header_block = OSMPBF_HeaderBlock_init_default;
+    bool ok;
+
+    printf("header_block\n");
+
+    ok = pb_decode(stream, OSMPBF_HeaderBlock_fields, &header_block);
+    return ok;
+}
+*/
+
+bool osm_blob_bzip2(pb_istream_t *stream, const pb_field_t *field, void **arg) {
+    sprintf(osm_error_str, "osm_blob_unsupported: bzip2 compression is unsupported");
+    return false;
+}
+
+bool osm_blob_lzma(pb_istream_t *stream, const pb_field_t *field, void **arg) {
+    sprintf(osm_error_str, "osm_blob_unsupported: lzma compression is unsupported");
+    return false;
+}
+
 bool osm_blob_raw(pb_istream_t *stream, const pb_field_t *field, void **arg) {
-    printf("osm_blob_raw\n");
-    pb_read(stream, NULL, stream->bytes_left);
-    return true;
+    osm_blob_t *blob = (osm_blob_t *)arg[0];
+    bool ret;
+
+    if(strcmp(blob->fb->blob_header.type, "OSMHeader") == 0) {
+        // We don't care about any of the content in a header block right now,
+        // so just skip decoding it.
+        //ret = osm_blob_header_block(stream, field, arg);
+        pb_read(stream, NULL, stream->bytes_left);
+        ret = true;
+    }else if(strcmp(blob->fb->blob_header.type, "OSMData") == 0) {
+        ret = osm_primitive_block(stream, field, arg);
+    }else{
+        pb_read(stream, NULL, stream->bytes_left);
+        sprintf(osm_error_str, "osm_blob_raw: unknown block type: %s", blob->fb->blob_header.type);
+        ret = false;
+    }
+    return ret;
 }
 
 bool osm_blob_zlib(pb_istream_t *stream, const pb_field_t *field, void **arg) {
-    OSMPBF_Blob *blob = (OSMPBF_Blob *)arg[0];
+    osm_blob_t *blob = (osm_blob_t *)arg[0];
     pb_istream_t dstream;
 
-    mz_ulong dsize = blob->raw_size;
+    mz_ulong dsize = blob->pb->raw_size;
     uint8_t *dbuf;
     int ret;
 
@@ -85,9 +125,17 @@ int osm_blob_read(osm_blob_t *blob, osm_fileblock_t *fb, int fd) {
     istream = pb_istream_from_buffer(buf, fb->data_size);
 
     pb.raw.funcs.decode = &osm_blob_raw;
-    pb.raw.arg = &blob;
+    pb.raw.arg = blob;
     pb.zlib_data.funcs.decode = &osm_blob_zlib;
-    pb.zlib_data.arg = &pb;
+    pb.zlib_data.arg = blob;
+    pb.lzma_data.funcs.decode = &osm_blob_lzma;
+    pb.lzma_data.arg = blob;
+
+    pb.OBSOLETE_bzip2_data.funcs.decode = &osm_blob_bzip2;
+    pb.OBSOLETE_bzip2_data.arg = blob;
+
+    blob->fb = fb;
+    blob->pb = &pb;
 
     ok = pb_decode(&istream, OSMPBF_Blob_fields, &pb);
     if(!ok) {

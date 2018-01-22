@@ -4,6 +4,8 @@
 #include "fileblock.h"
 
 struct osm_blob_s {
+    osm_fileblock_t *fb;
+    OSMPBF_Blob *pb;
 };
 typedef struct osm_blob_s osm_blob_t;
 

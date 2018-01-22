@@ -25,6 +25,7 @@ SRCS = $(NANOPB_DIR)/pb_common.c \
 	   src/osm_error.c \
 	   src/fileblock.c \
 	   src/blob.c \
+	   src/primitive_block.c \
 	   src/main.c
 
 PROTOS = $(PROTOS_DIR)/fileformat.pb.c \
