@@ -1,4 +1,5 @@
 #include "fileblock.h"
+#include "osm_error.h"
 #include "osmformat.pb.h"
 #include <pb_decode.h>
 #include <miniz.h>
@@ -8,21 +9,22 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 #include <errno.h>
 
 
-char osm_error_str[1024] = "OK";
-
-char *osm_get_error(void) {
-    return osm_error_str;
-}
-
 int osm_read_header_size(int fd, uint32_t *dest) {
     uint32_t size;
-    if(read(fd, &size, sizeof(uint32_t)) < 1) {
-        strcpy(osm_error_str, strerror(errno));
+    int err;
+
+    err = read(fd, &size, sizeof(uint32_t));
+    if(err == -1) {
+        sprintf(osm_error_str, "osm_read_header_size: %s", strerror(errno));
         return ERR_READ_HEADER_SIZE;
+    }
+    if(err == 0) {
+        return ERR_EOF;
     }
 
     *dest = ntohl(size);
@@ -36,7 +38,7 @@ int osm_parse_header(osm_fileblock_t *fb) {
     istream = pb_istream_from_buffer(fb->header, fb->header_size);
     ok = pb_decode(&istream, OSMPBF_BlobHeader_fields, &fb->blob_header);
     if(!ok) {
-        strcpy(osm_error_str, PB_GET_ERROR(&istream));
+        sprintf(osm_error_str, "osm_parse_header: %s", PB_GET_ERROR(&istream));
         return ERR_PB_DECODE_HEADER;
     }
 
@@ -58,7 +60,7 @@ int osm_fileblock_init(osm_fileblock_t *fb) {
 }
 
 int osm_fileblock_read(osm_fileblock_t *fb, int fd) {
-    uint32_t offset = 0;
+    uint64_t offset = 0;
     uint32_t new_size;
     uint8_t *tmp;
     int err;
@@ -73,7 +75,7 @@ int osm_fileblock_read(osm_fileblock_t *fb, int fd) {
         tmp = realloc(fb->header, new_size);
         if(tmp == NULL) {
             fb->header_size = 0;
-            strcpy(osm_error_str, "Unable to allocate memory for header");
+            sprintf(osm_error_str, "osm_fileblock_read: Unable to allocate memory for header");
             return ERR_MALLOC;
         }else{
             fb->header_alloc = new_size;
@@ -86,14 +88,13 @@ int osm_fileblock_read(osm_fileblock_t *fb, int fd) {
         err = read(fd, fb->header + offset, (fb->header_size - offset));
         if(err == -1) {
             fb->header_size = 0;
-            strcpy(osm_error_str, strerror(errno));
+            sprintf(osm_error_str, "osm_fileblock_read: failed to read header: %s", strerror(errno));
             return ERR_READ_HEADER_DATA;
         }
         if(err == 0) {
-            fb->header_size = 0;
-            strcpy(osm_error_str, "EOF when reading header size");
-            return OK;
+            break;
         }
+        offset += err;
     }
 
     err = osm_parse_header(fb);
@@ -104,38 +105,13 @@ int osm_fileblock_read(osm_fileblock_t *fb, int fd) {
 
     fb->data_size = fb->blob_header.datasize;
 
-    /*
-    fb->data = malloc(fb->data_size + 1);
-    fb->data[fb->data_size] = '\0';
-    if(fb->data == NULL) {
-        fb->data_size = 0;
-        strcpy(osm_error_str, "Unable to allocate memory for blob data");
-        return ERR_MALLOC;
-    }
-    */
-
     err = lseek(fd, fb->data_size, SEEK_CUR);
     if(err == -1) {
         fb->data_size = 0;
-        strcpy(osm_error_str, strerror(errno));
+        sprintf(osm_error_str, "osm_fileblock_read: lseek failed: %s", strerror(errno));
         return ERR_READ_BLOB_DATA;
     }
     fb->data_offset = (err - fb->data_size);
-    /*
-    offset = 0;
-    while(offset < fb->data_size) {
-        err = read(fd, fb->data + offset, (fb->data_size - offset));
-        if(err == -1) {
-            fb->data_size = 0;
-            free(fb->data);
-            strcpy(osm_error_str, strerror(errno));
-            return ERR_READ_BLOB_DATA;
-        }
-        if(err == 0) {
-            break;
-        }
-    }
-    */
 
     return 0;
 }
@@ -144,10 +120,4 @@ void osm_fileblock_destroy(osm_fileblock_t *fb) {
     if(fb->header_alloc != 0) {
         free(fb->header);
     }
-
-    /*
-    if(fb->data_size != 0) {
-        free(fb->data);
-    }
-    */
 }

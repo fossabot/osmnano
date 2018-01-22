@@ -22,11 +22,9 @@ SRCS = $(NANOPB_DIR)/pb_common.c \
 	   $(MINIZ_DIR)/miniz_tinfl.c \
 	   $(MINIZ_DIR)/miniz_tdef.c \
 	   $(MINIZ_DIR)/miniz.c \
-	   src/fileformat.c \
+	   src/osm_error.c \
 	   src/fileblock.c \
-	   src/osmformat.c \
-	   src/intlist.c \
-	   src/ptrlist.c \
+	   src/blob.c \
 	   src/main.c
 
 PROTOS = $(PROTOS_DIR)/fileformat.pb.c \
