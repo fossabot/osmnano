@@ -13,7 +13,7 @@ struct osm_fileblock_s {
     OSMPBF_BlobHeader blob_header;
 
     uint32_t data_size;
-    uint8_t *data;
+    uint64_t data_offset;
 };
 typedef struct osm_fileblock_s osm_fileblock_t;
 

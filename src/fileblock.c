@@ -53,7 +53,7 @@ int osm_fileblock_init(osm_fileblock_t *fb) {
     fb->header = NULL;
 
     fb->data_size = 0;
-    fb->data = NULL;
+    fb->data_offset = 0;
     return 0;
 }
 
@@ -120,6 +120,7 @@ int osm_fileblock_read(osm_fileblock_t *fb, int fd) {
         strcpy(osm_error_str, strerror(errno));
         return ERR_READ_BLOB_DATA;
     }
+    fb->data_offset = (err - fb->data_size);
     /*
     offset = 0;
     while(offset < fb->data_size) {
