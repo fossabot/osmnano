@@ -1,6 +1,3 @@
-#ifndef OSMFORMAT_H
-#define OSMFORMAT_H
-
 #include "fileformat.h"
 #include "osmformat.h"
 #include <pb_decode.h>
@@ -148,5 +145,3 @@ bool osm_stringtable(pb_istream_t *stream, const pb_field_t *field, void **arg) 
 
     return ok;
 }
-
-#endif

@@ -5,4 +5,4 @@ data
 *.log
 *.pb.c
 *.pb.h
-transit
+osmnano
