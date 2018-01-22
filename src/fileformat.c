@@ -21,63 +21,6 @@
 #include "ptrlist.h"
 
 
-int osm_decode_size(int fd, uint32_t *dest) {
-    uint32_t size;
-    if(read(fd, &size, sizeof(uint32_t)) < 1) {
-        return 1;
-    }
-
-    *dest = ntohl(size);
-    return 0;
-}
-
-int osm_decode_header(int fd, OSMPBF_BlobHeader *header, uint32_t header_size, decode_state_t *state) {
-    uint8_t header_buf[MAX_HEADER_SIZE];
-    pb_istream_t istream;
-    int size;
-    int offset = 0;
-    bool ok;
-
-    while(header_size > 0) {
-        size = read(fd, header_buf + offset, (header_size - offset));
-        if(size < 0) {
-            fprintf(stderr, "Unable to read header: %s\n", strerror(errno));
-            header = NULL;
-            return 1;
-        }
-        if(size == 0) {
-            fprintf(stderr, "Hit EOF when reading header\n");
-            header = NULL;
-            return 1;
-        }
-
-        header_size -= size;
-        offset += size;
-    }
-
-    istream = pb_istream_from_buffer(header_buf, offset);
-
-    ok = pb_decode(&istream, OSMPBF_BlobHeader_fields, header);
-    if(!ok) {
-        fprintf(stderr, "Decode header failed: %s\n", PB_GET_ERROR(&istream));
-        return 1;
-    }
-
-    if(strcmp(header->type, "OSMHeader") == 0) {
-        state->next_blob_type = HEADER_BLOCK;
-    }else if(strcmp(header->type, "OSMData") == 0) {
-        state->next_blob_type = PRIMITIVE_BLOCK;
-    }else{
-        fprintf(stderr, "Unknown header type: %s\n", header->type);
-        return 1;
-    }
-
-#ifdef PB_ENABLE_MALLOC
-    pb_release(OSMPBF_BlobHeader_fields, header);
-#endif
-    return 0;
-}
-
 int osm_decode_blob(int fd, OSMPBF_Blob *blob, uint32_t blob_size, decode_state_t *state) {
     uint8_t *buf;
     pb_istream_t istream;

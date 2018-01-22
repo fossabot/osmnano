@@ -34,8 +34,6 @@ struct dense_s {
 typedef struct dense_s dense_t;
 
 
-int osm_decode_size(int fd, uint32_t *dest);
-int osm_decode_header(int fd, OSMPBF_BlobHeader *header, uint32_t header_size, decode_state_t *state);
 int osm_decode_blob(int fd, OSMPBF_Blob *blob, uint32_t blob_size, decode_state_t *state);
 bool osm_blob_raw(pb_istream_t *stream, const pb_field_t *field, void **arg);
 bool osm_blob_zlib(pb_istream_t *stream, const pb_field_t *field, void **arg);

@@ -3,7 +3,7 @@ include third_party/nanopb-0.3.9/extra/nanopb.mk
 PROTOS_DIR = protos
 MINIZ_DIR = third_party/miniz-2.0.6
 
-LDFLAGS =
+LDFLAGS = 
 
 CFLAGS = -O2 -Wall -g \
 		 -I$(NANOPB_DIR) \
@@ -23,6 +23,7 @@ SRCS = $(NANOPB_DIR)/pb_common.c \
 	   $(MINIZ_DIR)/miniz_tdef.c \
 	   $(MINIZ_DIR)/miniz.c \
 	   src/fileformat.c \
+	   src/fileblock.c \
 	   src/osmformat.c \
 	   src/intlist.c \
 	   src/ptrlist.c \
