@@ -24,6 +24,6 @@ example, the Geofabrik regional extracts.
 
 License
 ---
-MIT. Third party dependencies may vary. See [LICENSE](../blob/master/LICENSE)
+MIT. Third party dependencies may vary. See [LICENSE](../master/LICENSE)
 for details.
 
