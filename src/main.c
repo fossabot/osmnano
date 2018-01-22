@@ -51,7 +51,6 @@ int main(int argc, char **argv) {
         fprintf(stderr, "%s\n", osm_get_error());
     }
 
-
     osm_fileblock_destroy(&fb);
     close(fd);
 

@@ -47,7 +47,6 @@ int osm_parse_header(osm_fileblock_t *fb) {
 
 int osm_fileblock_init(osm_fileblock_t *fb) {
     OSMPBF_BlobHeader blob_header = OSMPBF_BlobHeader_init_default;
-
     fb->blob_header = blob_header;
 
     fb->header_size = 0;
@@ -60,7 +59,7 @@ int osm_fileblock_init(osm_fileblock_t *fb) {
 }
 
 int osm_fileblock_read(osm_fileblock_t *fb, int fd) {
-    uint64_t offset = 0;
+    uint32_t offset = 0;
     uint32_t new_size;
     uint8_t *tmp;
     int err;
@@ -71,6 +70,7 @@ int osm_fileblock_read(osm_fileblock_t *fb, int fd) {
     }
 
     new_size = (fb->header_size + 1);
+
     if(new_size > fb->header_alloc) {
         tmp = realloc(fb->header, new_size);
         if(tmp == NULL) {
@@ -105,13 +105,13 @@ int osm_fileblock_read(osm_fileblock_t *fb, int fd) {
 
     fb->data_size = fb->blob_header.datasize;
 
-    err = lseek(fd, fb->data_size, SEEK_CUR);
+    err = lseek(fd, 0, SEEK_CUR);
     if(err == -1) {
         fb->data_size = 0;
         sprintf(osm_error_str, "osm_fileblock_read: lseek failed: %s", strerror(errno));
         return ERR_READ_BLOB_DATA;
     }
-    fb->data_offset = (err - fb->data_size);
+    fb->data_offset = err;
 
     return 0;
 }
@@ -119,5 +119,6 @@ int osm_fileblock_read(osm_fileblock_t *fb, int fd) {
 void osm_fileblock_destroy(osm_fileblock_t *fb) {
     if(fb->header_alloc != 0) {
         free(fb->header);
+        fb->header_alloc = 0;
     }
 }
