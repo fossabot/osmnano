@@ -8,6 +8,7 @@
 
 struct osm_fileblock_s {
     uint32_t header_size;
+    uint32_t header_alloc;
     uint8_t *header;
     OSMPBF_BlobHeader blob_header;
 
@@ -22,11 +23,11 @@ enum {
     ERR_MALLOC,
     ERR_READ_HEADER_DATA,
     ERR_PB_DECODE_HEADER,
-    ERR_READ_BLOB_DATA,
-    ERR_EOF
+    ERR_READ_BLOB_DATA
 } osm_fileblock_error;
 
 
+int osm_fileblock_init(osm_fileblock_t *fb);
 int osm_fileblock_read(osm_fileblock_t *fb, int fd);
 void osm_fileblock_destroy(osm_fileblock_t *fb);
 char *osm_get_error(void);

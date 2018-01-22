@@ -1,1 +1,2 @@
-OSMPBF.BlobHeader.type     max_size:10
+OSMPBF.BlobHeader.type      max_size:10
+OSMPBF.BlobHeader.indexdata type:FT_IGNORE
