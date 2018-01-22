@@ -11,7 +11,6 @@
 #include <pb.h>
 
 #define MAX_HEADER_SIZE 65536
-#define LIST_INIT_SIZE 8000
 
 
 enum next_blob {

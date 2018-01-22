@@ -144,8 +144,10 @@ bool osm_blob_raw(pb_istream_t *stream, const pb_field_t *field, void **arg) {
 #endif
             break;
         case PRIMITIVE_BLOCK:
+            /*
             primitive_block.stringtable.s.funcs.decode = &osm_stringtable;
             primitive_block.stringtable.s.arg = state;
+            */
 
             primitive_block.primitivegroup.funcs.decode = &osm_primitivegroup;
             primitive_block.primitivegroup.arg = state;
@@ -169,40 +171,32 @@ bool osm_blob_raw(pb_istream_t *stream, const pb_field_t *field, void **arg) {
 bool osm_blob_zlib(pb_istream_t *stream, const pb_field_t *field, void **arg) {
     decode_state_t *state = (decode_state_t *)arg[0];
     mz_ulong dsize = state->blob->raw_size;
-    size_t zsize = stream->bytes_left;
     pb_istream_t dstream;
-    uint8_t *zbuf, *dbuf;
+    uint8_t *dbuf;
     int ret;
     bool result;
-
-    //printf("osm_blob_zlib zsize=%zu dsize=%lu next_blob_type=%d\n", zsize, dsize, state->next_blob_type);
-
-    zbuf = malloc(zsize);
-    if(zbuf == NULL) {
-        return false;
-    }
 
     dbuf = malloc(dsize);
     if(dbuf == NULL) {
         fprintf(stderr, "Unable to allocate memory for dbuf\n");
-        free(zbuf);
         return false;
     }
 
-    pb_read(stream, zbuf, zsize);
-
-    if((ret = mz_uncompress(dbuf, &dsize, zbuf, zsize)) != MZ_OK) {
+    // Uncompress directly from the stream buffer, don't copy it first.
+    if((ret = mz_uncompress(dbuf, &dsize, stream->state, stream->bytes_left)) != MZ_OK) {
         fprintf(stderr, "uncompress failed: %d\n", ret);
-        free(zbuf);
         free(dbuf);
         return false;
     }
+
+    // Seek forward to consume the rest of the stream
+    pb_read(stream, NULL, stream->bytes_left);
 
     dstream = pb_istream_from_buffer(dbuf, dsize);
 
     result = osm_blob_raw(&dstream, field, arg);
 
-    free(zbuf);
+    //free(zbuf);
     free(dbuf);
     return result;
 }

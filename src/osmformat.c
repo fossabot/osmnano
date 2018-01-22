@@ -64,7 +64,6 @@ bool osm_unpack_sint64(pb_istream_t *stream, const pb_field_t *field, void **arg
 }
 
 bool osm_primitivegroup(pb_istream_t *stream, const pb_field_t *field, void **arg) {
-    //OSMPBF_PrimitiveBlock *primitive_block = (OSMPBF_PrimitiveBlock *)arg[0];
     OSMPBF_PrimitiveGroup primitive_group = OSMPBF_PrimitiveGroup_init_default;
     decode_state_t *state = (decode_state_t *)arg[0];
     bool ok;
@@ -101,11 +100,12 @@ bool osm_primitivegroup(pb_istream_t *stream, const pb_field_t *field, void **ar
     primitive_group.dense.lon.funcs.decode = &osm_unpack_sint64;
     primitive_group.dense.lon.arg = &dense.lons;
 
-    primitive_group.dense.keys_vals.funcs.decode = &osm_unpack_keys_vals;
-    primitive_group.dense.keys_vals.arg = state;
+    //primitive_group.dense.keys_vals.funcs.decode = &osm_unpack_keys_vals;
+    //primitive_group.dense.keys_vals.arg = state;
 
     ok = pb_decode(stream, OSMPBF_PrimitiveGroup_fields, &primitive_group);
 
+    /*
     for(i = 0; i < dense.ids.count; i++) {
         lat = 0.000000001 * (state->primitive_block->lat_offset + (state->primitive_block->granularity * dense.lats.vals[i]));
         lon = 0.000000001 * (state->primitive_block->lon_offset + (state->primitive_block->granularity * dense.lons.vals[i]));
@@ -113,6 +113,7 @@ bool osm_primitivegroup(pb_istream_t *stream, const pb_field_t *field, void **ar
         printf("id=% " PRId64 " lat=%f lon=%f\n",
                dense.ids.vals[i], lat, lon);
     }
+    */
 
     intlist_destroy(&dense.ids);
     intlist_destroy(&dense.lats);

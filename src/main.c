@@ -22,10 +22,12 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    /*
     if(ptrlist_init(&state.stringtable, LIST_INIT_SIZE) != 0) {
         fprintf(stderr, "Unable to initialize string table\n");
         return 1;
     }
+    */
 
     fd = open(argv[1], O_RDONLY);
 
