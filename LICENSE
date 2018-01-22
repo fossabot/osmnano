@@ -8,9 +8,14 @@ miniz
 MIT license
 ./third_party/miniz-2.0.6/LICENSE
 
-No modifications have been made to the third party components aside from
-unpacking the release archives and committing them here.
+OpenStreetMaps protobuf definitions
+LGPL 3.0
+./protos/COPYING.LESSER
 
+No modifications have been made to nanopb and miniz aside from unpacking the
+release archives and committing them here. Additional options files were added
+to the protos directory, but no modifications were made to the upstream .proto
+files.
 
 
 All other components in this repository are licensed as follows:
