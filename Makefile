@@ -3,8 +3,6 @@ include third_party/nanopb-0.3.9/extra/nanopb.mk
 PROTOS_DIR = protos
 MINIZ_DIR = third_party/miniz-2.0.6
 
-LDFLAGS = 
-
 CFLAGS = -O2 -Wall -g \
 		 -I$(NANOPB_DIR) \
 		 -I$(PROTOS_DIR) \
@@ -16,6 +14,8 @@ CFLAGS = -O2 -Wall -g \
 		 -DMINIZ_NO_TIME \
 		 -DPB_FIELD_32BIT \
 		 -DPB_BUFFER_ONLY
+
+LDFLAGS = $(CFLAGS)
 
 SRCS = $(NANOPB_DIR)/pb_common.c \
 	   $(NANOPB_DIR)/pb_decode.c \

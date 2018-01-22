@@ -11,7 +11,6 @@ bool osm_primitive_group(pb_istream_t *stream, const pb_field_t *field, void **a
     bool ok;
 
     ok = pb_decode(stream, OSMPBF_PrimitiveGroup_fields, &primitive_group);
-    printf("primitive group\n");
     return ok;
 }
 
@@ -23,7 +22,6 @@ bool osm_primitive_block(pb_istream_t *stream, const pb_field_t *field, void **a
     primitive_block.primitivegroup.arg = arg;
 
     ok = pb_decode(stream, OSMPBF_PrimitiveBlock_fields, &primitive_block);
-    printf("decoded primitive block\n");
 
     return ok;
 }
