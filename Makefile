@@ -33,7 +33,7 @@ PROTOS = $(PROTOS_DIR)/fileformat.pb.c \
 
 OBJS = $(SRCS:.c=.o) $(PROTOS:.c=.o)
 
-TARGET = transit
+TARGET = osmnano
 
 
 %.pb.c: %.proto
@@ -45,7 +45,7 @@ TARGET = transit
 	@echo "    CC $<"
 
 $(TARGET): generator $(PROTOS) $(OBJS)
-	@$(CC) $(LDFLAGS) -otransit $(OBJS)
+	@$(CC) $(LDFLAGS) -o$(TARGET) $(OBJS)
 	@echo "TARGET $@"
 
 $(OBJS): $(PROTOS)
