@@ -11,12 +11,16 @@ MIT license
 OpenStreetMaps protobuf definitions
 LGPL 3.0
 ./protos/COPYING.LESSER
+Note: Section 3 of LGPL 3.0 allows unrestricted usage of data structure
+      definitions, which I believe protobufs are. Therefore, no viral copyleft
+      applies here.
 
 No modifications have been made to nanopb and miniz aside from unpacking the
 release archives and committing them here. Additional options files were added
 to the protos directory, but no modifications were made to the upstream .proto
 files.
 
+--------------------------------------------------------------------------------
 
 All other components in this repository are licensed as follows:
 
