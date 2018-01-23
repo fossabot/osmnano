@@ -9,7 +9,8 @@ enum {
     ERR_PB_DECODE_HEADER,
     ERR_READ_BLOB_DATA,
     ERR_EOF,
-    ERR_UNCOMPRESS
+    ERR_UNCOMPRESS,
+    ERR_SEEK
 } osm_error;
 
 char osm_error_str[1024];

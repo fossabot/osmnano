@@ -58,10 +58,31 @@ int osm_fileblock_init(osm_fileblock_t *fb) {
     return 0;
 }
 
+int osm_fileblock_seek_begin(osm_fileblock_t *fb, int fd) {
+    off_t off;
+    off = lseek(fd, fb->data_offset, SEEK_SET);
+    if(off == -1) {
+        sprintf(osm_error_str, "osm_fileblock_seek_begin: %s", strerror(errno));
+        return ERR_SEEK;
+    }
+    return OK;
+}
+
+int osm_fileblock_seek_end(osm_fileblock_t *fb, int fd) {
+    off_t off;
+    off = lseek(fd, (fb->data_offset + fb->data_size), SEEK_SET);
+    if(off == -1) {
+        sprintf(osm_error_str, "osm_fileblock_seek_end: %s", strerror(errno));
+        return ERR_SEEK;
+    }
+    return OK;
+}
+
 int osm_fileblock_read(osm_fileblock_t *fb, int fd) {
-    uint32_t offset = 0;
+    size_t offset = 0;
     uint32_t new_size;
     uint8_t *tmp;
+    off_t seek_offset;
     int err;
 
     err = osm_read_header_size(fd, &fb->header_size);
@@ -105,13 +126,13 @@ int osm_fileblock_read(osm_fileblock_t *fb, int fd) {
 
     fb->data_size = fb->blob_header.datasize;
 
-    err = lseek(fd, 0, SEEK_CUR);
-    if(err == -1) {
+    seek_offset = lseek(fd, 0, SEEK_CUR);
+    if(seek_offset == -1) {
         fb->data_size = 0;
         sprintf(osm_error_str, "osm_fileblock_read: lseek failed: %s", strerror(errno));
         return ERR_READ_BLOB_DATA;
     }
-    fb->data_offset = err;
+    fb->data_offset = seek_offset;
 
     return 0;
 }

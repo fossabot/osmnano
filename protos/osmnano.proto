@@ -1,0 +1,11 @@
+syntax = "proto3";
+option optimize_for = LITE_RUNTIME;
+package osmnano;
+
+import "fileformat.proto";
+
+message Block {
+    string filename = 2;
+    uint64 data_offset = 3;
+    OSMPBF.BlobHeader blob_header = 1;
+}

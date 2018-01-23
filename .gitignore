@@ -2,6 +2,7 @@ data
 *~
 *.swp
 *.o
+*.a
 *.log
 *.pb.c
 *.pb.h
