@@ -12,9 +12,9 @@ PROTOS = fileformat.proto \
 
 RANLIB = ranlib
 
-SRCS = $(PROTOS:.proto=.pb.c)
-
-OBJS = $(NANOPB_CORE:.c=.o) $(SRCS:.c=.o)
+PROTO_SRCS = $(PROTOS:.proto=.pb.c)
+PROTO_OBJS = $(PROTO_SRCS:.c=.o)
+NANOPB_OBJS = $(NANOPB_CORE:.c=.o)
 
 TARGET = libosmprotos.a
 
@@ -24,12 +24,14 @@ default: $(TARGET)
 	@$(CC) $(CFLAGS) -c -o $@ $<
 	@echo "    CC $<"
 
-$(TARGET): $(OBJS)
-	@$(AR) rc $@ $(OBJS)
+$(PROTO_OBJS): $(PROTO_SRCS)
+
+$(TARGET): $(PROTO_OBJS) $(NANOPB_OBJS)
+	@$(AR) rc $@ $(PROTO_OBJS) $(NANOPB_OBJS)
 	@$(RANLIB) $@
 	@echo "STATIC $@"
 
 clean:
-	rm -f $(SRCS) $(OBJS) $(SRCS:.pb.c=.pb.h) $(TARGET)
+	rm -f $(PROTO_SRCS) $(PROTO_OBJS) $(NANOPB_OBJS) $(TARGET)
 
 .PRECIOUS: *.pb.h

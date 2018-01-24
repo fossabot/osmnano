@@ -3,6 +3,7 @@ NANOPB_DIR = third_party/nanopb-0.3.9
 MINIZ_DIR = third_party/miniz-2.0.6
 
 CFLAGS = -O2 -Wall -g \
+		 -Wno-strict-aliasing \
 		 -I$(NANOPB_DIR) \
 		 -I$(PROTOS_DIR) \
 		 -I$(MINIZ_DIR) \
