@@ -1,10 +1,10 @@
 #include "osm_error.h"
 #include "fileblock.h"
 #include "blob.h"
+#include "task_server.h"
 
 #include "osmnano.pb.h"
 
-#include <sys/queue.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -16,17 +16,6 @@
 #define NUM_WORKERS 12
 
 
-struct osm_task_s {
-    osm_fileblock_t fb;
-    TAILQ_ENTRY(osm_task_s) node;
-};
-typedef struct osm_task_s osm_task_t;
-
-TAILQ_HEAD(osm_task_q, osm_task_s) tasks;
-
-void start_workers(int num_workers) {
-    printf("Starting %d worker threads\n", num_workers);
-}
 /*
 int worker(void) {
     osm_blob_t blob;
@@ -54,21 +43,24 @@ int worker(void) {
 
 
 int main(int argc, char **argv) {
-    TAILQ_INIT(&tasks);
+    osm_task_server_t task_server;
     osm_task_t *task;
 
     off_t file_offset, progress_interval, next_progress;
     int fd;
     int err = 0;
     int num_blocks = 0;
-    int blocks_processed = 0;
 
     if(argc != 2) {
         fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
         return 1;
     }
 
-    start_workers(NUM_WORKERS);
+    err = osm_task_server_init(&task_server);
+    if(err != 0) {
+        fprintf(stderr, "task server init failed: %s\n", osm_get_error());
+        return 1;
+    }
 
     fd = open(argv[1], O_RDONLY);
     if(fd == -1) {
@@ -85,6 +77,7 @@ int main(int argc, char **argv) {
 
     printf("File size: %lu (%lu GB)\n", file_offset, (file_offset / (1024 * 1024 * 1024)));
 
+
     progress_interval = (file_offset / 10);
     next_progress = progress_interval;
 
@@ -95,6 +88,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    setbuf(stdout, NULL);
     printf("Reading block headers");
 
     while(err == OK) {
@@ -122,9 +116,12 @@ int main(int argc, char **argv) {
             next_progress += progress_interval;
         }
 
-        TAILQ_INSERT_TAIL(&tasks, task, node);
-
         err = osm_fileblock_seek_end(&task->fb, fd);
+        if(err != OK) {
+            break;
+        }
+
+        err = osm_task_server_add(&task_server, task);
         if(err != OK) {
             break;
         }
@@ -134,34 +131,14 @@ int main(int argc, char **argv) {
 
     printf(". %d blocks\n", num_blocks);
 
-    printf("Parsing blocks");
-    
-    progress_interval = (num_blocks / 10);
-    next_progress = 0;
-
-    while(!TAILQ_EMPTY(&tasks)) {
-        task = TAILQ_FIRST(&tasks);
-        //printf("task.fb.data_offset=%lu\n", task->fb.data_offset);
-        TAILQ_REMOVE(&tasks, task, node);
-
-        osm_fileblock_destroy(&task->fb);
-        free(task);
-
-        blocks_processed++;
-        if(blocks_processed > next_progress) {
-            printf(".");
-            next_progress += progress_interval;
-        }
-    }
-
-    printf(". OK\n");
-
     if(err != ERR_EOF && err != OK) {
         fprintf(stderr, "%s\n", osm_get_error());
     }
 
     close(fd);
 
+    osm_task_server_wait(&task_server);
+    osm_task_server_destroy(&task_server);
 
     return err;
 }

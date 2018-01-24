@@ -1,0 +1,1 @@
+osmnano.Task.filename      type:FT_STATIC max_size:1024    # PATH_MAX
