@@ -18,18 +18,16 @@ NANOPB_OBJS = $(NANOPB_CORE:.c=.o)
 
 TARGET = libosmprotos.a
 
-default: $(TARGET)
+$(TARGET): $(PROTO_OBJS) $(NANOPB_OBJS)
+	@$(AR) rc $@ $(PROTO_OBJS) $(NANOPB_OBJS)
+	@$(RANLIB) $@
+	@echo "STATIC $@"
 
 %.o: %.c
 	@$(CC) $(CFLAGS) -c -o $@ $<
 	@echo "    CC $<"
 
 $(PROTO_OBJS): $(PROTO_SRCS)
-
-$(TARGET): $(PROTO_OBJS) $(NANOPB_OBJS)
-	@$(AR) rc $@ $(PROTO_OBJS) $(NANOPB_OBJS)
-	@$(RANLIB) $@
-	@echo "STATIC $@"
 
 clean:
 	rm -f $(PROTO_SRCS) $(PROTO_OBJS) $(NANOPB_OBJS) $(TARGET)

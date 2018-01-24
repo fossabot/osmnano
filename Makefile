@@ -30,20 +30,18 @@ OBJS = $(SRCS:.c=.o)
 
 TARGET = osmnano
 
-default: $(TARGET)
+$(TARGET): $(OBJS)
+	@$(CC) $(CFLAGS) -o$(TARGET) $(OBJS) $(LDFLAGS)
+	@echo "TARGET $@"
 
 %.o: %.c
 	@$(CC) $(CFLAGS) -c -o $@ $<
 	@echo "    CC $<"
 
-protobufs:
+$(PROTOS_DIR)/libosmprotos.a:
 	$(MAKE) -C $(PROTOS_DIR)
 
-$(OBJS): protobufs
-
-$(TARGET): $(OBJS)
-	@$(CC) $(CFLAGS) -o$(TARGET) $(OBJS) $(LDFLAGS)
-	@echo "TARGET $@"
+$(OBJS): $(PROTOS_DIR)/libosmprotos.a
 
 clean:
 	$(MAKE) -C $(PROTOS_DIR) clean
