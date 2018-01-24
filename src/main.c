@@ -13,8 +13,6 @@
 #include <unistd.h>
 #include <errno.h>
 
-#define NUM_WORKERS 12
-
 
 /*
 int worker(void) {

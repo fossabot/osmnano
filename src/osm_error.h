@@ -10,7 +10,8 @@ enum {
     ERR_READ_BLOB_DATA,
     ERR_EOF,
     ERR_UNCOMPRESS,
-    ERR_SEEK
+    ERR_SEEK,
+    ERR_SOCKET
 } osm_error;
 
 char osm_error_str[1024];
