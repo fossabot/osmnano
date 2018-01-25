@@ -25,6 +25,7 @@ int osm_task_server_init(osm_task_server_t *ts);
 int osm_task_server_add(osm_task_server_t *ts, osm_task_t *task);
 int osm_task_server_get(osm_task_server_t *ts, osm_task_t **task);
 
+int osm_task_server_loop(osm_task_server_t *ts);
 int osm_task_server_wait(osm_task_server_t *ts);
 void osm_task_server_destroy(osm_task_server_t *ts);
 

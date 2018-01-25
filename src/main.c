@@ -2,6 +2,7 @@
 #include "fileblock.h"
 #include "blob.h"
 #include "task_server.h"
+#include "task_worker.h"
 
 #include "osmnano.pb.h"
 
@@ -57,6 +58,15 @@ int main(int argc, char **argv) {
     err = osm_task_server_init(&task_server);
     if(err != 0) {
         fprintf(stderr, "task server init failed: %s\n", osm_get_error());
+        return 1;
+    }
+
+    err = osm_task_worker_fork();
+    if(err == ERR_NO_TASKS) {
+        return 0;
+    }
+    if(err != 0) {
+        fprintf(stderr, "task worker failed: %s\n", osm_get_error());
         return 1;
     }
 
@@ -124,6 +134,11 @@ int main(int argc, char **argv) {
             break;
         }
 
+        err = osm_task_server_loop(&task_server);
+        if(err != OK) {
+            break;
+        }
+
         num_blocks++;
     }
 
@@ -134,6 +149,13 @@ int main(int argc, char **argv) {
     }
 
     close(fd);
+
+    while(1) {
+        err = osm_task_server_loop(&task_server);
+        if(err != OK) {
+            break;
+        }
+    }
 
     osm_task_server_wait(&task_server);
     osm_task_server_destroy(&task_server);

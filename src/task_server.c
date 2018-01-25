@@ -22,7 +22,7 @@ int osm_task_server_init(osm_task_server_t *ts) {
 
     ts->sock = socket(AF_UNIX, SOCK_SEQPACKET, 0);
     if(ts->sock == -1) {
-        sprintf(osm_error_str, "osm_task_server_init: unable to create socket: %s\n", strerror(errno));
+        sprintf(osm_error_str, "osm_task_server_init: unable to create socket %s: %s", SOCKET_NAME, strerror(errno));
         return ERR_SOCKET;
     }
 
@@ -31,7 +31,15 @@ int osm_task_server_init(osm_task_server_t *ts) {
 
     err = bind(ts->sock, (const struct sockaddr *)&addr, addrlen);
     if(err != 0) {
-        sprintf(osm_error_str, "osm_task_server_init: unable to bind socket: %s\n", strerror(errno));
+        close(ts->sock);
+        sprintf(osm_error_str, "osm_task_server_init: unable to bind socket %s: %s", SOCKET_NAME, strerror(errno));
+        return ERR_SOCKET;
+    }
+
+    err = listen(ts->sock, 2);
+    if(err != 0) {
+        close(ts->sock);
+        sprintf(osm_error_str, "osm_task_server_init: unable to listen on socket %s: %s", SOCKET_NAME, strerror(errno));
         return ERR_SOCKET;
     }
 
@@ -50,6 +58,30 @@ int osm_task_server_get(osm_task_server_t *ts, osm_task_t **task) {
 
     *task = STAILQ_FIRST(&ts->queue);
     STAILQ_REMOVE_HEAD(&ts->queue, entries);
+    return 0;
+}
+
+int osm_task_server_loop(osm_task_server_t *ts) {
+    struct timeval tv = {0};
+    fd_set readfds;
+    int client_sock;
+    int err;
+
+    FD_ZERO(&readfds);
+    FD_SET(ts->sock, &readfds);
+
+    err = select(1, &readfds, NULL, NULL, &tv);
+    if(err == -1) {
+        osm_task_server_destroy(ts);
+        sprintf(osm_error_str, "osm_task_server_loop: select failed: %s", strerror(errno));
+        return ERR_SOCKET;
+    }
+    if(err == 1) {
+        client_sock = accept(ts->sock, NULL, NULL);
+        printf("got client connection\n");
+        close(client_sock);
+    }
+
     return 0;
 }
 
