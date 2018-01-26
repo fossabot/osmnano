@@ -12,7 +12,9 @@ enum {
     ERR_UNCOMPRESS,
     ERR_SEEK,
     ERR_SOCKET,
-    ERR_NO_TASKS
+    ERR_NO_TASKS,
+    ERR_PB_DECODE,
+    ERR_PB_ENCODE
 } osm_error;
 
 char osm_error_str[1024];

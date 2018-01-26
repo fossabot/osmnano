@@ -10,3 +10,12 @@ message Task {
     string filename = 3;
     OSMPBF.BlobHeader blob_header = 4;
 }
+
+message TaskStatus {
+    uint64 id = 1;
+    enum Status {
+        SUCCESS = 0;
+        FAILED = 1;
+    }
+    Status status = 2;
+}

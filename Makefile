@@ -2,11 +2,12 @@ PROTOS_DIR = protos
 NANOPB_DIR = third_party/nanopb-0.3.9
 MINIZ_DIR = third_party/miniz-2.0.6
 
-CFLAGS = -O2 -Wall -g \
+CFLAGS = -O2 -Wall -g -std=c99 \
 		 -Wno-strict-aliasing \
 		 -I$(NANOPB_DIR) \
 		 -I$(PROTOS_DIR) \
 		 -I$(MINIZ_DIR) \
+		 -D_GNU_SOURCE \
 		 -D_FILE_OFFSET_BITS=64 \
 		 -DMINIZ_NO_STDIO \
 		 -DMINIZ_NO_ARCHIVE_APIS \

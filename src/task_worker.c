@@ -3,13 +3,14 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/un.h>
+#include <netinet/in.h>
+#include <netdb.h>
 #include <stdbool.h>
 #include <errno.h>
 #include <stdio.h>
 
 
-int osm_task_worker_fork(void) {
+int osm_task_worker_fork(struct addrinfo *addr) {
     osm_task_worker_t worker;
     osm_task_t task;
     pid_t pid;
@@ -18,7 +19,7 @@ int osm_task_worker_fork(void) {
     pid = fork();
     if(pid == 0) {
         // child process
-        err = osm_task_worker_connect(&worker, SOCKET_NAME);
+        err = osm_task_worker_connect(&worker, addr);
         if(err != 0) {
             sprintf(osm_error_str, "osm_task_worker_fork: failed to connect to parent: %s", strerror(errno));
         }
@@ -51,21 +52,18 @@ int osm_task_worker_fork(void) {
     return 0;
 }
 
-int osm_task_worker_connect(osm_task_worker_t *worker, char *socket_name) {
-    struct sockaddr_un addr;
-    socklen_t addrlen = sizeof(struct sockaddr_un);
+int osm_task_worker_connect(osm_task_worker_t *worker, struct addrinfo *addr) {
     int err;
 
-    worker->sock = socket(AF_UNIX, SOCK_SEQPACKET, 0);
+    worker->sock = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
     if(worker->sock == -1) {
+        sprintf(osm_error_str, "osm_task_worker_connect: unable to create socket: %s", strerror(errno));
         return ERR_SOCKET;
     }
 
-    addr.sun_family = AF_UNIX;
-    strcpy(addr.sun_path, socket_name);
-
-    err = connect(worker->sock, (const struct sockaddr *)&addr, addrlen);
+    err = connect(worker->sock, addr->ai_addr, addr->ai_addrlen);
     if(err != 0) {
+        close(worker->sock);
         sprintf(osm_error_str, "osm_task_worker_connect: failed to connect to task server: %s", strerror(errno));
         return ERR_SOCKET;
     }
@@ -74,8 +72,8 @@ int osm_task_worker_connect(osm_task_worker_t *worker, char *socket_name) {
 }
 
 bool osm_task_worker_connected(osm_task_worker_t *worker) {
-    struct sockaddr_un addr;
-    socklen_t addrlen;
+    struct sockaddr_in6 addr;
+    socklen_t addrlen = sizeof(struct sockaddr_in6);
     int err;
 
     err = getpeername(worker->sock, (struct sockaddr *)&addr, &addrlen);

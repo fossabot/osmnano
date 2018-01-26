@@ -46,6 +46,7 @@ int main(int argc, char **argv) {
     osm_task_t *task;
 
     off_t file_offset, progress_interval, next_progress;
+    char *filename;
     int fd;
     int err = 0;
     int num_blocks = 0;
@@ -55,29 +56,35 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    filename = argv[1];
+
     err = osm_task_server_init(&task_server);
     if(err != 0) {
         fprintf(stderr, "task server init failed: %s\n", osm_get_error());
         return 1;
     }
 
-    err = osm_task_worker_fork();
+    err = osm_task_worker_fork(&task_server.addrs[0]);
     if(err == ERR_NO_TASKS) {
+        osm_task_server_destroy(&task_server);
         return 0;
     }
     if(err != 0) {
+        osm_task_server_destroy(&task_server);
         fprintf(stderr, "task worker failed: %s\n", osm_get_error());
         return 1;
     }
 
-    fd = open(argv[1], O_RDONLY);
+    fd = open(filename, O_RDONLY);
     if(fd == -1) {
+        osm_task_server_destroy(&task_server);
         fprintf(stderr, "file open failed: %s\n", strerror(errno));
         return 1;
     }
 
     file_offset = lseek(fd, 0, SEEK_END);
     if(file_offset == -1) {
+        osm_task_server_destroy(&task_server);
         fprintf(stderr, "unable to determine file size: %s\n", strerror(errno));
         close(fd);
         return 1;
@@ -91,6 +98,7 @@ int main(int argc, char **argv) {
 
     file_offset = lseek(fd, 0, SEEK_SET);
     if(file_offset == -1) {
+        osm_task_server_destroy(&task_server);
         fprintf(stderr, "seek to beginning of file: %s\n", strerror(errno));
         close(fd);
         return 1;
@@ -107,7 +115,7 @@ int main(int argc, char **argv) {
             break;
         }
 
-        err = osm_fileblock_init(&task->fb);
+        err = osm_fileblock_init(&task->fb, filename);
         if(err != OK) {
             free(task);
             break;
@@ -150,9 +158,10 @@ int main(int argc, char **argv) {
 
     close(fd);
 
-    while(1) {
+    while(!osm_task_server_empty(&task_server)) {
         err = osm_task_server_loop(&task_server);
         if(err != OK) {
+            fprintf(stderr, "%s\n", osm_get_error());
             break;
         }
     }
