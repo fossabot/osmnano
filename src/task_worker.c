@@ -85,6 +85,7 @@ bool osm_task_worker_connected(osm_task_worker_t *worker) {
 }
 
 int osm_task_worker_get_task(osm_task_worker_t *worker, osm_task_t *task) {
+    printf("worker_get_task\n");
     sprintf(osm_error_str, "osm_task_worker_get_task: no more tasks available");
     return ERR_NO_TASKS;
 }

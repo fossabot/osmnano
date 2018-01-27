@@ -14,7 +14,8 @@ enum {
     ERR_SOCKET,
     ERR_NO_TASKS,
     ERR_PB_DECODE,
-    ERR_PB_ENCODE
+    ERR_PB_ENCODE,
+    ERR_SHORT_WRITE
 } osm_error;
 
 char osm_error_str[1024];

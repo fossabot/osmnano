@@ -1,6 +1,7 @@
 #ifndef TASK_SERVER_H
 #define TASK_SERVER_H
 #include "fileblock.h"
+#include "session.h"
 
 #include <sys/queue.h>
 #include <sys/types.h>
@@ -14,15 +15,6 @@ typedef struct osm_task_s osm_task_t;
 struct osm_task_s {
     osm_fileblock_t fb;
     STAILQ_ENTRY(osm_task_s) entries;
-};
-
-typedef struct osm_session_s osm_session_t;
-struct osm_session_s {
-    int sock;
-    int err;
-    struct sockaddr addr;
-    socklen_t addrlen;
-    SLIST_ENTRY(osm_session_s) entries;
 };
 
 struct osm_task_server_s {
@@ -41,9 +33,14 @@ int osm_task_server_add(osm_task_server_t *ts, osm_task_t *task);
 int osm_task_server_get(osm_task_server_t *ts, osm_task_t **task);
 
 int osm_task_server_loop(osm_task_server_t *ts);
+int osm_task_server_accept(osm_task_server_t *ts);
+int osm_task_server_recv(osm_task_server_t *ts);
+
 int osm_task_server_handle(osm_task_server_t *ts, osm_session_t *session);
+int osm_task_server_send_next_task(osm_task_server_t *ts, osm_session_t *session);
 bool osm_task_server_empty(osm_task_server_t *ts);
 int osm_task_server_wait(osm_task_server_t *ts);
+int osm_task_server_cleanup(osm_task_server_t *ts);
 void osm_task_server_destroy(osm_task_server_t *ts);
 
 

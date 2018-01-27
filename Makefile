@@ -22,6 +22,7 @@ SRCS = $(MINIZ_DIR)/miniz_tinfl.c \
 	   $(MINIZ_DIR)/miniz.c \
 	   src/task_server.c \
 	   src/task_worker.c \
+	   src/session.c \
        src/osm_error.c \
 	   src/fileblock.c \
 	   src/blob.c \
