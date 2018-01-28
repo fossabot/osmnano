@@ -15,32 +15,6 @@
 #include <errno.h>
 
 
-/*
-int worker(void) {
-    osm_blob_t blob;
-    err = osm_blob_init(&blob);
-    if(err != 0) {
-        fprintf(stderr, "%s\n", osm_get_error());
-        return err;
-    }
-    fd = open(argv[1], O_RDONLY);
-    if(fd == -1) {
-        osm_fileblock_destroy(&fb);
-        fprintf(stderr, "file open failed: %s\n", strerror(errno));
-        return 1;
-    }
-
-    err = osm_fileblock_seek_begin(&fb, fd);
-    if(err != 0) {
-        break;
-    }
-    err = osm_blob_read(&blob, &fb, fd);
-
-    return err;
-}
-*/
-
-
 int main(int argc, char **argv) {
     osm_task_server_t task_server;
     osm_task_t *task;
@@ -64,15 +38,17 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    err = osm_task_worker_fork(&task_server.addrs[0]);
-    if(err == ERR_NO_TASKS) {
-        osm_task_server_destroy(&task_server);
-        return 0;
-    }
-    if(err != 0) {
-        osm_task_server_destroy(&task_server);
-        fprintf(stderr, "task worker failed: %s\n", osm_get_error());
-        return 1;
+    for(int i = 0; i < 8; i++) {
+        err = osm_task_worker_fork(&task_server);
+        if(err == ERR_NO_TASKS) {
+            osm_task_server_destroy(&task_server);
+            return 0;
+        }
+        if(err != 0) {
+            osm_task_server_destroy(&task_server);
+            fprintf(stderr, "task worker failed: %s\n", osm_get_error());
+            return 1;
+        }
     }
 
     fd = open(filename, O_RDONLY);
@@ -115,6 +91,8 @@ int main(int argc, char **argv) {
             break;
         }
 
+        task->id = num_blocks + 1;
+
         err = osm_fileblock_init(&task->fb, filename);
         if(err != OK) {
             free(task);
@@ -132,17 +110,17 @@ int main(int argc, char **argv) {
             next_progress += progress_interval;
         }
 
-        err = osm_fileblock_seek_end(&task->fb, fd);
-        if(err != OK) {
-            break;
-        }
-
         err = osm_task_server_add(&task_server, task);
         if(err != OK) {
             break;
         }
 
-        err = osm_task_server_loop(&task_server);
+        err = osm_task_server_loop(&task_server, false);
+        if(err != OK) {
+            break;
+        }
+
+        err = osm_fileblock_seek_end(&task->fb, fd);
         if(err != OK) {
             break;
         }
@@ -158,15 +136,30 @@ int main(int argc, char **argv) {
 
     close(fd);
 
-    while(!osm_task_server_empty(&task_server)) {
-        err = osm_task_server_loop(&task_server);
+    printf("Executing tasks");
+    progress_interval = (num_blocks / 10);
+    next_progress = progress_interval;
+
+    while(osm_task_server_inflight(&task_server) > 0) {
+        if(task_server.completed_tasks >= next_progress) {
+            printf(".");
+            next_progress += progress_interval;
+        }
+        err = osm_task_server_loop(&task_server, true);
         if(err != OK) {
             fprintf(stderr, "%s\n", osm_get_error());
             break;
         }
     }
 
-    osm_task_server_wait(&task_server);
+    printf(". %lu complete\n", task_server.completed_tasks);
+
+    err = osm_task_server_wait(&task_server);
+    if(err != 0 && err != ERR_NO_TASKS) {
+        fprintf(stderr, "%s\n", osm_get_error());
+        return err;
+    }
+
     osm_task_server_destroy(&task_server);
 
     return err;

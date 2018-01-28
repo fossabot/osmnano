@@ -17,7 +17,7 @@ struct osm_fileblock_s {
     uint32_t data_size;
     off_t data_offset;
 
-    char *filename;
+    char filename[1024];
 };
 typedef struct osm_fileblock_s osm_fileblock_t;
 

@@ -8,9 +8,10 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/queue.h>
+#include <sys/wait.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#include <sys/queue.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -25,6 +26,10 @@ int osm_task_server_init(osm_task_server_t *ts) {
     STAILQ_INIT(&ts->queue);
     SLIST_INIT(&ts->sessions);
     SLIST_INIT(&ts->cleanup);
+
+    memset(ts->pids, 0, sizeof(pid_t) * MAX_WORKERS);
+    ts->num_workers = 0;
+    ts->completed_tasks = 0;
 
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_INET6;
@@ -67,12 +72,13 @@ int osm_task_server_init(osm_task_server_t *ts) {
 
 int osm_task_server_add(osm_task_server_t *ts, osm_task_t *task) {
     STAILQ_INSERT_TAIL(&ts->queue, task, entries);
+    ts->submitted_tasks++;
     return 0;
 }
 
 int osm_task_server_get(osm_task_server_t *ts, osm_task_t **task) {
     if(STAILQ_EMPTY(&ts->queue)) {
-        return 1;
+        return ERR_NO_TASKS;
     }
 
     *task = STAILQ_FIRST(&ts->queue);
@@ -100,6 +106,9 @@ int osm_task_server_accept(osm_task_server_t *ts) {
 
     err = select(nfds, &readfds, NULL, NULL, &timeout);
     if(err == -1) {
+        if(errno == EINTR) {
+            return 0;
+        }
         sprintf(osm_error_str, "osm_task_server_loop: select to accept failed: %s", strerror(errno));
         return ERR_SOCKET;
     }
@@ -129,15 +138,20 @@ int osm_task_server_accept(osm_task_server_t *ts) {
     return 0;
 }
 
-int osm_task_server_recv(osm_task_server_t *ts) {
+int osm_task_server_recv(osm_task_server_t *ts, bool wait) {
     osm_session_t *session;
     struct timeval timeout;
     fd_set readfds;
     int nfds = 0;
     int err;
 
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 0;
+    if(!wait) {
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 0;
+    }else{
+        timeout.tv_sec = 1;
+        timeout.tv_usec = 0;
+    }
 
     FD_ZERO(&readfds);
     SLIST_FOREACH(session, &ts->sessions, entries) {
@@ -150,6 +164,9 @@ int osm_task_server_recv(osm_task_server_t *ts) {
     if(nfds > 0) {
         err = select(nfds, &readfds, NULL, NULL, &timeout);
         if(err == -1) {
+            if(errno == EINTR) {
+                return 0;
+            }
             sprintf(osm_error_str, "osm_task_server_recv: select failed: %s", strerror(errno));
             return ERR_SOCKET;
         }
@@ -169,7 +186,7 @@ int osm_task_server_recv(osm_task_server_t *ts) {
     return 0;
 }
 
-int osm_task_server_loop(osm_task_server_t *ts) {
+int osm_task_server_loop(osm_task_server_t *ts, bool wait) {
     int err;
 
     // select and accept the server socket
@@ -180,18 +197,22 @@ int osm_task_server_loop(osm_task_server_t *ts) {
         return err;
     }
 
-    // find sockets with waiting data
-    // call recv
-    // pb_decode the TaskStatus message
-    err = osm_task_server_recv(ts);
-    if(err != 0) {
-        return err;
-    }
-
     // for each session without a task assigned
     // get the next task
     // pb_encode it
     // send it to the socket
+    err = osm_task_server_send_tasks(ts);
+    if(err != 0) {
+        return err;
+    }
+
+    // find sockets with waiting data
+    // call recv
+    // pb_decode the TaskStatus message
+    err = osm_task_server_recv(ts, wait);
+    if(err != 0) {
+        return err;
+    }
 
     // for each session in cleanup, remove it from sessions and run
     // destroy
@@ -203,8 +224,9 @@ int osm_task_server_loop(osm_task_server_t *ts) {
     return 0;
 }
 
-int osm_task_server_send_next_task(osm_task_server_t *ts, osm_session_t *session) {
+int osm_task_server_send_tasks(osm_task_server_t *ts) {
     osmnano_Task task_pb;
+    osm_session_t *session;
     osm_task_t *task;
     pb_ostream_t ostream;
     uint8_t buf[65536];
@@ -212,39 +234,53 @@ int osm_task_server_send_next_task(osm_task_server_t *ts, osm_session_t *session
     int err;
     int offset;
 
-    err = osm_task_server_get(ts, &task);
-    if(err != 0) {
-        return err;
+
+    if(osm_task_server_empty(ts)) {
+        return 0;
     }
 
-    task_pb.id = 0;
-    strcpy(task_pb.filename, task->fb.filename);
-    task_pb.data_offset = task->fb.data_offset;
-    task_pb.blob_header = task->fb.blob_header;
+    SLIST_FOREACH(session, &ts->sessions, entries) {
+        if(session->task == NULL) {
+            err = osm_task_server_get(ts, &task);
+            if(err == ERR_NO_TASKS) {
+                return 0;
+            }
+            if(err != 0) {
+                return err;
+            }
+            session->task = task;
 
-    ostream = pb_ostream_from_buffer(buf, 65536);
-    ok = pb_encode(&ostream, osmnano_Task_fields, &task_pb);
-    if(!ok) {
-        sprintf(osm_error_str, "osm_task_server_send_next_task: encoding Task failed: %s", PB_GET_ERROR(&ostream));
-        return ERR_PB_ENCODE;
-    }
+            task_pb.id = task->id;
+            strcpy(task_pb.filename, task->fb.filename);
+            task_pb.data_offset = task->fb.data_offset;
+            task_pb.data_size = task->fb.data_size;
+            task_pb.blob_header = task->fb.blob_header;
 
-    offset = 0;
-    while(offset < ostream.bytes_written) {
-        err = send(session->sock, (ostream.state + offset), (ostream.bytes_written - offset), 0);
-        if(err == -1) {
-            sprintf(osm_error_str, "osm_task_server_send_next_task: send failed: %s", strerror(errno));
-            return ERR_SOCKET;
+            ostream = pb_ostream_from_buffer(buf, 65536);
+            ok = pb_encode(&ostream, osmnano_Task_fields, &task_pb);
+            if(!ok) {
+                sprintf(osm_error_str, "osm_task_server_send_next_task: encoding Task failed: %s", PB_GET_ERROR(&ostream));
+                return ERR_PB_ENCODE;
+            }
+
+            offset = 0;
+            while(offset < ostream.bytes_written) {
+                err = send(session->sock, (buf + offset), (ostream.bytes_written - offset), 0);
+                if(err == -1) {
+                    sprintf(osm_error_str, "osm_task_server_send_next_task: send failed: %s", strerror(errno));
+                    return ERR_SOCKET;
+                }
+                if(err == 0) {
+                    break;
+                }
+                offset += err;
+            }
+
+            if(offset != ostream.bytes_written) {
+                sprintf(osm_error_str, "osm_task_server_send_next_task: didn't send the right number of bytes: %d != %zu", offset, ostream.bytes_written);
+                return ERR_SHORT_WRITE;
+            }
         }
-        if(err == 0) {
-            break;
-        }
-        offset += err;
-    }
-
-    if(offset != ostream.bytes_written) {
-        sprintf(osm_error_str, "osm_task_server_send_next_task: didn't send the right number of bytes: %d != %zu", offset, ostream.bytes_written);
-        return ERR_SHORT_WRITE;
     }
 
     return 0;
@@ -258,7 +294,7 @@ int osm_task_server_handle(osm_task_server_t *ts, osm_session_t *session) {
     uint8_t buf[65536];
     ssize_t len;
     bool ok;
-    int err;
+    int err = 0;
 
     len = recv(session->sock, buf, 65536, 0);
     if(len == -1) {
@@ -267,6 +303,7 @@ int osm_task_server_handle(osm_task_server_t *ts, osm_session_t *session) {
     }
     if(len == 0) {
         // client closed connection
+        printf("client closed connection\n");
         SLIST_INSERT_HEAD(&ts->cleanup, session, entries);
         close(session->sock);
         return 0;
@@ -281,16 +318,21 @@ int osm_task_server_handle(osm_task_server_t *ts, osm_session_t *session) {
 
     switch(task_status.status) {
         case osmnano_TaskStatus_Status_SUCCESS:
-            printf("Task %lu success\n", task_status.id);
+            osm_fileblock_destroy(&session->task->fb);
+            free(session->task);
+            session->task = NULL;
             break;
         case osmnano_TaskStatus_Status_FAILED:
             printf("Task %lu failed\n", task_status.id);
+            osm_fileblock_destroy(&session->task->fb);
+            free(session->task);
+            session->task = NULL;
             break;
         default:
             printf("Task %lu unknown status %d\n", task_status.id, task_status.status);
     }
 
-    err = osm_task_server_send_next_task(ts, session);
+    ts->completed_tasks++;
 
     return err;
 }
@@ -299,12 +341,37 @@ bool osm_task_server_empty(osm_task_server_t *ts) {
     return STAILQ_EMPTY(&ts->queue);
 }
 
+int osm_task_server_inflight(osm_task_server_t *ts) {
+    return (ts->submitted_tasks - ts->completed_tasks);
+}
+
 int osm_task_server_wait(osm_task_server_t *ts) {
+    osm_session_t *session;
+    int wstatus;
+    pid_t err;
+    int i;
+
+    while(!SLIST_EMPTY(&ts->sessions)) {
+        session = SLIST_FIRST(&ts->sessions);
+        SLIST_REMOVE_HEAD(&ts->sessions, entries);
+        close(session->sock);
+        free(session);
+    }
+
+    for(i = 0; i < ts->num_workers; i++) {
+        if(ts->pids[i] == 0) {
+            continue;
+        }
+        err = waitpid(ts->pids[i], &wstatus, 0);
+        if(err == -1) {
+            sprintf(osm_error_str, "osm_task_server_wait: waitpid failed: %s", strerror(errno));
+            return ERR_WAITPID;
+        }
+    }
     return 0;
 }
 
 void osm_task_server_destroy(osm_task_server_t *ts) {
-    osm_session_t *session;
     osm_task_t *task;
 
     while(osm_task_server_get(ts, &task) == 0) {
@@ -313,13 +380,6 @@ void osm_task_server_destroy(osm_task_server_t *ts) {
     }
 
     osm_task_server_cleanup(ts);
-
-    while(!SLIST_EMPTY(&ts->sessions)) {
-        session = SLIST_FIRST(&ts->sessions);
-        SLIST_REMOVE_HEAD(&ts->sessions, entries);
-        close(session->sock);
-        free(session);
-    }
 
     close(ts->sock);
     freeaddrinfo(ts->addrs);

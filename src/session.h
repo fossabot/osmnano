@@ -1,11 +1,12 @@
 #ifndef SESSION_H
 #define SESSION_H
-
+#include "task.h"
 #include <sys/queue.h>
 
 typedef struct osm_session_s osm_session_t;
 struct osm_session_s {
     int sock;
+    osm_task_t *task;
     SLIST_ENTRY(osm_session_s) entries;
 };
 

@@ -49,7 +49,7 @@ int osm_fileblock_init(osm_fileblock_t *fb, char *filename) {
     OSMPBF_BlobHeader blob_header = OSMPBF_BlobHeader_init_default;
     fb->blob_header = blob_header;
 
-    fb->filename = filename;
+    strcpy(fb->filename, filename);
 
     fb->header_size = 0;
     fb->header_alloc = 0;

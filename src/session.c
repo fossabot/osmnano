@@ -4,6 +4,7 @@
 
 int osm_session_init(osm_session_t *session) {
     session->sock = 0;
+    session->task = NULL;
     return 0;
 }
 

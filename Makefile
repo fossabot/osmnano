@@ -2,7 +2,7 @@ PROTOS_DIR = protos
 NANOPB_DIR = third_party/nanopb-0.3.9
 MINIZ_DIR = third_party/miniz-2.0.6
 
-CFLAGS = -O2 -Wall -g -std=c99 \
+CFLAGS = -O2 -Wall -g -std=c99 -pg -no-pie \
 		 -Wno-strict-aliasing \
 		 -I$(NANOPB_DIR) \
 		 -I$(PROTOS_DIR) \
@@ -15,7 +15,7 @@ CFLAGS = -O2 -Wall -g -std=c99 \
 		 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES \
 		 -DMINIZ_NO_TIME
 
-LDFLAGS = -L./$(PROTOS_DIR) -losmprotos
+LDFLAGS = -L./$(PROTOS_DIR) -losmprotos -no-pie
 
 SRCS = $(MINIZ_DIR)/miniz_tinfl.c \
 	   $(MINIZ_DIR)/miniz_tdef.c \
