@@ -34,6 +34,11 @@ int main(int argc, char **argv) {
     num_workers = atoi(argv[1]);
     filename = argv[2];
 
+    if((num_workers > MAX_WORKERS) || (num_workers < 1)) {
+        fprintf(stderr, "num workers must be between 1 and %d\n", MAX_WORKERS);
+        return 1;
+    }
+
     err = osm_task_server_init(&task_server);
     if(err != 0) {
         fprintf(stderr, "task server init failed: %s\n", osm_get_error());

@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 #define TASK_SERVER_PORT "14004"
-#define MAX_WORKERS 16
+#define MAX_WORKERS 128
 
 
 struct osm_task_server_s {
