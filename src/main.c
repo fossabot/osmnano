@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    for(int i = 0; i < 8; i++) {
+    for(int i = 0; i < 16; i++) {
         err = osm_task_worker_fork(&task_server);
         if(err == ERR_NO_TASKS) {
             osm_task_server_destroy(&task_server);

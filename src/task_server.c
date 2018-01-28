@@ -30,6 +30,7 @@ int osm_task_server_init(osm_task_server_t *ts) {
     memset(ts->pids, 0, sizeof(pid_t) * MAX_WORKERS);
     ts->num_workers = 0;
     ts->completed_tasks = 0;
+    ts->submitted_tasks = 0;
 
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_INET6;
@@ -149,8 +150,8 @@ int osm_task_server_recv(osm_task_server_t *ts, bool wait) {
         timeout.tv_sec = 0;
         timeout.tv_usec = 0;
     }else{
-        timeout.tv_sec = 1;
-        timeout.tv_usec = 0;
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 1000;
     }
 
     FD_ZERO(&readfds);
