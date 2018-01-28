@@ -145,6 +145,9 @@ int main(int argc, char **argv) {
 
     printf("Executing tasks");
     progress_interval = (num_blocks / 10);
+    if(num_blocks < 10) {
+        progress_interval = 1;
+    }
     next_progress = progress_interval;
 
     while(osm_task_server_inflight(&task_server) > 0) {

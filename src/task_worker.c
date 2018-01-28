@@ -68,7 +68,7 @@ int osm_task_worker_fork(osm_task_server_t *ts) {
     }else{
         // parent process
         ts->pids[ts->num_workers] = pid;
-        printf("Task worker %d pid %d\n", ts->num_workers, pid);
+        //printf("Task worker %d pid %d\n", ts->num_workers, pid);
         ts->num_workers++;
         return 0;
     }
