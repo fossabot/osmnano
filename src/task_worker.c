@@ -26,6 +26,13 @@ int osm_task_worker_fork(osm_task_server_t *ts) {
     int err;
 
     pid = fork();
+
+    /*
+     * for profiling, gprof needs this
+    extern void _start (void), etext (void);
+    monstartup ((u_long) &_start, (u_long) &etext);
+    */
+
     if(pid == 0) {
         // child process
         err = osm_task_worker_connect(&worker, &ts->addrs[0]);

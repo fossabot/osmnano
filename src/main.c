@@ -24,13 +24,15 @@ int main(int argc, char **argv) {
     int fd;
     int err = 0;
     int num_blocks = 0;
+    int num_workers;
 
-    if(argc != 2) {
-        fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
+    if(argc != 3) {
+        fprintf(stderr, "Usage: %s <num workers> <filename>\n", argv[0]);
         return 1;
     }
 
-    filename = argv[1];
+    num_workers = atoi(argv[1]);
+    filename = argv[2];
 
     err = osm_task_server_init(&task_server);
     if(err != 0) {
@@ -38,7 +40,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    for(int i = 0; i < 16; i++) {
+    for(int i = 0; i < num_workers; i++) {
         err = osm_task_worker_fork(&task_server);
         if(err == ERR_NO_TASKS) {
             osm_task_server_destroy(&task_server);
