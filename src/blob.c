@@ -109,7 +109,7 @@ int osm_blob_read_mmap(osm_task_worker_t *worker, osm_blob_t *blob, osm_filebloc
             sprintf(osm_error_str, "osm_blob_read_mmap: fstat failed: %s", strerror(errno));
             return ERR_READ_BLOB_DATA;
         }
-        worker->mapped = (uint8_t *)mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+        worker->mapped = (uint8_t *)mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
         if(worker->mapped == MAP_FAILED) {
             worker->mapped = NULL;
             sprintf(osm_error_str, "osm_blob_read_mmap: mmap failed: %s", strerror(errno));
