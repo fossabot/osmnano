@@ -1,5 +1,5 @@
 OSMPBF.DenseNodes.id        type:FT_POINTER
-#OSMPBF.DenseNodes.lat       type:FT_IGNORE
-#OSMPBF.DenseNodes.lon       type:FT_IGNORE
-#OSMPBF.DenseNodes.keys_vals type:FT_IGNORE
-#OSMPBF.DenseNodes.denseinfo type:FT_IGNORE
+OSMPBF.DenseNodes.lat       type:FT_POINTER
+OSMPBF.DenseNodes.lon       type:FT_POINTER
+OSMPBF.DenseNodes.keys_vals type:FT_POINTER
+OSMPBF.DenseNodes.denseinfo type:FT_IGNORE

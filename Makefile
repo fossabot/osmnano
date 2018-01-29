@@ -16,8 +16,8 @@ CFLAGS = -O2 -Wall -g -std=c99 \
 		 -DMINIZ_NO_TIME \
 		 -DPB_FIELD_32BIT \
 		 -DPB_BUFFER_ONLY \
-		 -DPB_ENABLE_MALLOC \
-		 -DOSM_USE_MMAP
+		 -DPB_ENABLE_MALLOC
+#		 -DOSM_USE_MMAP
 
 LDFLAGS = -L./$(PROTOS_DIR) -losmprotos
 
