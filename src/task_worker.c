@@ -159,7 +159,13 @@ int osm_task_worker_run(osm_task_worker_t *worker, osm_task_t *task) {
         return ERR_SEEK;
     }
 
-    /*
+#if defined(OSM_USE_MMAP)
+    err = osm_blob_read_mmap(worker, &blob, &task->fb, fd);
+    if(err != 0) {
+        close(fd);
+        return err;
+    }
+#else
     err = osm_fileblock_seek_begin(&task->fb, fd);
     if(err != 0) {
         close(fd);
@@ -171,13 +177,7 @@ int osm_task_worker_run(osm_task_worker_t *worker, osm_task_t *task) {
         close(fd);
         return err;
     }
-    */
-
-    err = osm_blob_read_mmap(worker, &blob, &task->fb, fd);
-    if(err != 0) {
-        close(fd);
-        return err;
-    }
+#endif
 
     close(fd);
     return 0;
