@@ -26,13 +26,18 @@ int main(int argc, char **argv) {
     int num_blocks = 0;
     int num_workers;
 
-    if(argc != 3) {
-        fprintf(stderr, "Usage: %s <num workers> <filename>\n", argv[0]);
+    if(argc < 2) {
+        fprintf(stderr, "Usage: %s <filename> [num workers]\n", argv[0]);
         return 1;
     }
 
-    num_workers = atoi(argv[1]);
-    filename = argv[2];
+    filename = argv[1];
+
+    if(argc == 3) {
+        num_workers = atoi(argv[2]);
+    }else{
+        num_workers = 1;
+    }
 
     if((num_workers > MAX_WORKERS) || (num_workers < 1)) {
         fprintf(stderr, "num workers must be between 1 and %d\n", MAX_WORKERS);
@@ -45,6 +50,8 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    setbuf(stdout, NULL);
+    printf("Starting %d workers", num_workers);
     for(int i = 0; i < num_workers; i++) {
         err = osm_task_worker_fork(&task_server);
         if(err == ERR_NO_TASKS) {
@@ -56,7 +63,9 @@ int main(int argc, char **argv) {
             fprintf(stderr, "task worker failed: %s\n", osm_get_error());
             return 1;
         }
+        printf(".");
     }
+    printf(" ok\n");
 
     fd = open(filename, O_RDONLY);
     if(fd == -1) {
@@ -87,7 +96,6 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    setbuf(stdout, NULL);
     printf("Reading block headers");
 
     while(err == OK) {
