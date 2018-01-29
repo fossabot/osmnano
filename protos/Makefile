@@ -4,7 +4,8 @@ include $(NANOPB_DIR)/extra/nanopb.mk
 CFLAGS = -O2 -Wall -g \
 		 -I$(NANOPB_DIR) \
 		 -DPB_FIELD_32BIT \
-		 -DPB_BUFFER_ONLY
+		 -DPB_BUFFER_ONLY \
+		 -DPB_ENABLE_MALLOC
 
 PROTOS = fileformat.proto \
 		 osmformat.proto \
