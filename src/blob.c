@@ -1,4 +1,5 @@
 #include "blob.h"
+#include "task_worker.h"
 #include "osm_error.h"
 #include "fileblock.h"
 #include "primitive_block.h"
@@ -9,6 +10,7 @@
 #include <miniz.h>
 
 #include <sys/types.h>
+#include <sys/mman.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
@@ -75,7 +77,7 @@ bool osm_blob_zlib(pb_istream_t *stream, const pb_field_t *field, void **arg) {
 
     ret = mz_uncompress(dbuf, &dsize, stream->state, stream->bytes_left);
     if(ret != MZ_OK) {
-        sprintf(osm_error_str, "osm_blob_zlib: uncompress failed");
+        sprintf(osm_error_str, "osm_blob_zlib: uncompress failed: %s", mz_error(ret));
         free(dbuf);
         return false;
     }
@@ -90,6 +92,46 @@ bool osm_blob_zlib(pb_istream_t *stream, const pb_field_t *field, void **arg) {
 }
 
 int osm_blob_init(osm_blob_t *blob) {
+    return 0;
+}
+
+int osm_blob_read_mmap(osm_task_worker_t *worker, osm_blob_t *blob, osm_fileblock_t *fb, int fd) {
+    OSMPBF_Blob pb = OSMPBF_Blob_init_default;
+    pb_istream_t istream;
+    bool ok;
+
+    if(worker->mapped == NULL) {
+        worker->mapped = (uint8_t *)mmap(NULL, fb->data_size, PROT_READ, MAP_SHARED, fd, 0);
+        if(worker->mapped == MAP_FAILED) {
+            worker->mapped = NULL;
+            sprintf(osm_error_str, "osm_blob_read_mmap: mmap failed: %s", strerror(errno));
+            return ERR_MMAP;
+        }
+        worker->mapped_size = fb->data_size;
+    }
+
+    istream = pb_istream_from_buffer(worker->mapped + fb->data_offset, fb->data_size);
+
+    pb.raw.funcs.decode = &osm_blob_raw;
+    pb.raw.arg = blob;
+    pb.zlib_data.funcs.decode = &osm_blob_zlib;
+    pb.zlib_data.arg = blob;
+    pb.lzma_data.funcs.decode = &osm_blob_lzma;
+    pb.lzma_data.arg = blob;
+
+    pb.OBSOLETE_bzip2_data.funcs.decode = &osm_blob_bzip2;
+    pb.OBSOLETE_bzip2_data.arg = blob;
+
+    blob->fb = fb;
+    blob->pb = &pb;
+
+    ok = pb_decode(&istream, OSMPBF_Blob_fields, &pb);
+    if(!ok) {
+        fprintf(stderr, "%s\n", osm_error_str);
+        sprintf(osm_error_str, "osm_blob_read_mmap: pb_decode failed: %s", PB_GET_ERROR(&istream));
+        return ERR_READ_BLOB_DATA;
+    }
+
     return 0;
 }
 

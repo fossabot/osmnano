@@ -11,6 +11,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/mman.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <fcntl.h>
@@ -26,6 +27,9 @@ int osm_task_worker_fork(osm_task_server_t *ts) {
     int err;
 
     pid = fork();
+
+    worker.mapped = NULL;
+    worker.mapped_size = 0;
 
     /*
      * for profiling, gprof needs this
@@ -155,6 +159,7 @@ int osm_task_worker_run(osm_task_worker_t *worker, osm_task_t *task) {
         return ERR_SEEK;
     }
 
+    /*
     err = osm_fileblock_seek_begin(&task->fb, fd);
     if(err != 0) {
         close(fd);
@@ -162,6 +167,13 @@ int osm_task_worker_run(osm_task_worker_t *worker, osm_task_t *task) {
     }
 
     err = osm_blob_read(&blob, &task->fb, fd);
+    if(err != 0) {
+        close(fd);
+        return err;
+    }
+    */
+
+    err = osm_blob_read_mmap(worker, &blob, &task->fb, fd);
     if(err != 0) {
         close(fd);
         return err;
@@ -206,5 +218,9 @@ int osm_task_worker_finish(osm_task_worker_t *worker, osm_task_t *task) {
 void osm_task_worker_destroy(osm_task_worker_t *worker) {
     if(osm_task_worker_connected(worker)) {
         close(worker->sock);
+    }
+
+    if(worker->mapped != NULL) {
+        munmap(worker->mapped, worker->mapped_size);
     }
 }

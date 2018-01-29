@@ -7,6 +7,8 @@
 
 struct osm_task_worker_s {
     int sock;
+    uint8_t *mapped;
+    size_t mapped_size;
 };
 typedef struct osm_task_worker_s osm_task_worker_t;
 

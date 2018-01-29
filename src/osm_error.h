@@ -16,7 +16,8 @@ enum {
     ERR_PB_DECODE,
     ERR_PB_ENCODE,
     ERR_SHORT_WRITE,
-    ERR_WAITPID
+    ERR_WAITPID,
+    ERR_MMAP
 } osm_error;
 
 char osm_error_str[1024];
