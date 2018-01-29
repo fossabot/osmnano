@@ -10,6 +10,7 @@
 #include <miniz.h>
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -97,17 +98,24 @@ int osm_blob_init(osm_blob_t *blob) {
 
 int osm_blob_read_mmap(osm_task_worker_t *worker, osm_blob_t *blob, osm_fileblock_t *fb, int fd) {
     OSMPBF_Blob pb = OSMPBF_Blob_init_default;
+    struct stat st;
     pb_istream_t istream;
     bool ok;
+    int err;
 
     if(worker->mapped == NULL) {
-        worker->mapped = (uint8_t *)mmap(NULL, fb->data_size, PROT_READ, MAP_SHARED, fd, 0);
+        err = fstat(fd, &st);
+        if(err != 0) {
+            sprintf(osm_error_str, "osm_blob_read_mmap: fstat failed: %s", strerror(errno));
+            return ERR_READ_BLOB_DATA;
+        }
+        worker->mapped = (uint8_t *)mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
         if(worker->mapped == MAP_FAILED) {
             worker->mapped = NULL;
             sprintf(osm_error_str, "osm_blob_read_mmap: mmap failed: %s", strerror(errno));
             return ERR_MMAP;
         }
-        worker->mapped_size = fb->data_size;
+        worker->mapped_size = st.st_size;
     }
 
     istream = pb_istream_from_buffer(worker->mapped + fb->data_offset, fb->data_size);
