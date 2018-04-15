@@ -1,3 +1,5 @@
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FJeremyGrosser%2Fosmnano.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FJeremyGrosser%2Fosmnano?ref=badge_shield)
+
 This is a proof of concept demonstrating parsing of OpenStreetMaps osm.pbf
 format files using nanopb. It doesn't do anything useful yet.
 
@@ -27,3 +29,7 @@ License
 MIT. Third party dependencies may vary. See [LICENSE](../master/LICENSE)
 for details.
 
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FJeremyGrosser%2Fosmnano.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FJeremyGrosser%2Fosmnano?ref=badge_large)
